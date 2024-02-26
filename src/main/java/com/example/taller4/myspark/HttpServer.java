@@ -3,13 +3,16 @@ package com.example.taller4.myspark;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
-import com.example.taller4.myspark.anotations.Component;
-import com.example.taller4.myspark.anotations.GetMapping;
+import com.example.taller4.myspark.annotations.Component;
+import com.example.taller4.myspark.annotations.GetMapping;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -43,34 +46,7 @@ public class HttpServer {
             IllegalArgumentException, InvocationTargetException, ClassNotFoundException {
         ServerSocket serverSocket = null;
         setUserDir(args[0]);
-
-        //
-        Class<?> c = Class.forName(args[1]);
-
-        if (c.isAnnotationPresent(Component.class)) {
-            for (Method m : c.getDeclaredMethods()) {
-                if (m.isAnnotationPresent(GetMapping.class)) {
-                    components.put(m.getAnnotation(GetMapping.class).value(), m);
-                }
-            }
-        }
-
-        String pathGet = "/component/square";
-        String queryVal = "7";
-        if (pathGet.startsWith("/component")) {
-            String path = pathGet.replace("/component", "");
-            if (components.containsKey(path)) {
-                Method method = components.get(path);
-                if (method.getParameterCount() == 1) {
-                    System.out.println("Out: " + method.invoke(null, (Object)queryVal));
-                } else {
-                    System.out.println("Out: " + method.invoke(null));
-                }
-            } else {
-                System.out.println("Route not define");
-            }
-        }
-        //
+        loadClasses();
 
         try {
             serverSocket = new ServerSocket(Integer.parseInt(env.PORT.getValue()));
@@ -105,6 +81,7 @@ public class HttpServer {
                 if (firstLine) {
                     if (inputLine.contains("GET")) {
                         method = "GET";
+                        System.out.println(inputLine);
                         uriStr = inputLine.split(" ")[1];
                         break;
                     } else if (inputLine.contains("POST")) {
@@ -133,45 +110,64 @@ public class HttpServer {
                 query = "";
             }
 
-            if (search) {
-                getMovieData(out, file);
-            } else {
-                // Routes checking
-                try {
-                    if (path.startsWith("/action")) {
-                        String webURI = path.replace("/action", "");
-                        if (method.equals("GET")) {
-                            if (services.containsKey(webURI)) {
-                                outputLine = services.get(webURI).handle(query);
-                            } else if (webURI.contains(".")) {
-                                outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
-                            } else {
-                                outputLine = httpError();
-                            }
-                        } else if (method.equals("POST")) {
-                            if (services.containsKey(webURI)) {
-                                outputLine = services.get(webURI).handle(query);
-                            } else if (webURI.contains(".")) {
-                                outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
-                            } else {
-                                outputLine = httpError();
-                            }
-                        }
-                    } else {
-                        outputLine = htttpClientHtml(file.getPath(), clientSocket.getOutputStream());
-                    }
-                } catch (IOException e) {
-                    outputLine = httpError();
-                }
-            }
+            if (file.getPath() != null) {
 
-            out.println(outputLine);
+                if (search) {
+                    getMovieData(out, file);
+                } else {
+                    // Routes checking
+                    try {
+                        if (path.startsWith("/action")) {
+                            String webURI = path.replace("/action", "");
+                            if (method.equals("GET")) {
+                                if (services.containsKey(webURI)) {
+                                    outputLine = services.get(webURI).handle(query);
+                                } else if (webURI.contains(".")) {
+                                    outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
+                                } else {
+                                    outputLine = httpError();
+                                }
+                            } else if (method.equals("POST")) {
+                                if (services.containsKey(webURI)) {
+                                    outputLine = services.get(webURI).handle(query);
+                                } else if (webURI.contains(".")) {
+                                    outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
+                                } else {
+                                    outputLine = httpError();
+                                }
+                            }
+                        } else if (path.startsWith("/component")) {
+                            String webURI = path.replace("/component", "");
+                            if (components.containsKey(webURI)) {
+                                outputLine = "HTTP/1.1 200 OK\r\n"
+                                        + "Content-Type:text/html\r\n"
+                                        + "\r\n";
+                                Method methodReq = components.get(webURI);
+                                if (methodReq.getParameterCount() == 1) {
+                                    outputLine += methodReq.invoke(null, (Object) query);
+                                } else {
+                                    outputLine += methodReq.invoke(null);
+                                }
+                            } else {
+                                outputLine = httpError();
+                            }
+                        } else {
+                            outputLine = htttpClientHtml(file.getPath(), clientSocket.getOutputStream());
+                        }
+                    } catch (IOException e) {
+                        outputLine = httpError();
+                    }
+                }
+
+                out.println(outputLine);
+            }
 
             out.close();
             in.close();
             clientSocket.close();
         }
         serverSocket.close();
+
     }
 
     private static String httpError() {
@@ -214,13 +210,13 @@ public class HttpServer {
             outputStream.write(outputLine.getBytes());
             outputStream.write(bytes);
         } else {
-            BufferedReader reader = Files.newBufferedReader(filePath, charset);
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                outputLine += line;
-                if (!reader.ready()) {
-                    reader.close();
-                    break;
+            try (BufferedReader reader = Files.newBufferedReader(filePath, charset)) {
+                String line = null;
+                while ((line = reader.readLine()) != null) {
+                    outputLine += line;
+                    if (!reader.ready()) {
+                        break;
+                    }
                 }
             }
         }
@@ -253,13 +249,13 @@ public class HttpServer {
             outputStream.write(outputLine.getBytes());
             outputStream.write(bytes);
         } else {
-            BufferedReader reader = Files.newBufferedReader(filePath, charset);
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                outputLine += line;
-                if (!reader.ready()) {
-                    reader.close();
-                    break;
+            try (BufferedReader reader = Files.newBufferedReader(filePath, charset)) {
+                String line = null;
+                while ((line = reader.readLine()) != null) {
+                    outputLine += line;
+                    if (!reader.ready()) {
+                        break;
+                    }
                 }
             }
         }
@@ -324,5 +320,40 @@ public class HttpServer {
     public static void post(String r, WebServiceInter s) {
         // System.out.println("POST not implemented yet.");
         services.put(r, s);
+    }
+
+    /**
+     * Read all the files in the classpath and look for a Component anotation. If
+     * the class containt it, look for the GetMapping anotation to relate the path
+     * in the GetMappong with the method to response the corresponding requests
+     * 
+     * @throws ClassNotFoundException
+     * @throws IOException
+     */
+    private static void loadClasses() throws ClassNotFoundException, IOException {
+        Set<String> fileSet = new HashSet<>();
+        try (DirectoryStream<Path> stream = Files
+                .newDirectoryStream(Paths.get("target/classes/com/example/taller4/myspark"))) {
+            for (Path path : stream) {
+                if (!Files.isDirectory(path)) {
+                    fileSet.add(path.toString());
+                }
+            }
+        }
+
+        for (String file : fileSet) {
+
+            String classFullName = file.replace(".class", "").replace("target\\classes\\", "").replace("\\", ".");
+
+            Class<?> c = Class.forName(classFullName);
+
+            if (c.isAnnotationPresent(Component.class)) {
+                for (Method m : c.getDeclaredMethods()) {
+                    if (m.isAnnotationPresent(GetMapping.class)) {
+                        components.put(m.getAnnotation(GetMapping.class).value(), m);
+                    }
+                }
+            }
+        }
     }
 }
