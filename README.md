@@ -77,7 +77,13 @@ Las funcionalidades de asignar la carpeta y el tipo de respuesta se manejan como
 
 Para el manejo de estas etiquetas, está su definición en el directorio _annotations_. De modo que, si se requiere añadir una nueva o modificar alguna existente se puedan diferenciar de las demás clases.
 
-Además, en el directorio _resources/public_ encontramos todos los recursos que el servidor ofrece y envía cuando son solicitados. Pero, si el usuario quiere manejar otro directorio para sus archivos, puede crearlo manualmente dentro de _resources_ con el nombre que quiera y tal como se ve en la última línea de la imagen anterior, pasando el nombre del directorio, quedará asignado como espacio de búsqueda para los archivos solicitados para su implementación. Es decir, las rutas que inicien con el path */action*
+Para ejecutar el proyecto que cree un usuario, lo mínimo es crear una clase _App_ donde se encuentre el método `main` que debe contener como mínimo las siguientes líneas para levantar el servicio con anotaciones.
+
+![Líneas base](<Imágenes README/Base Ejecución.png>)
+
+En este caso, esto se encuentra en la clase _MyWebServices_ junto a las rutas definidas con funciones lambda de forma similar a Spark (Objetivo del laboratorio anterior).
+
+Además, tal como se trabajó en el taller anterior, el directorio _resources/public_ cuenta con todos los recursos que el servidor ofrece y envía cuando son solicitados. Pero, si el usuario quiere manejar otro directorio para sus archivos, puede crearlo manualmente dentro de _resources_ con el nombre que quiera y tal como se ve en la última línea de la imagen anterior, pasando el nombre del directorio, quedará asignado como espacio de búsqueda para los archivos solicitados para su implementación. Es decir, las rutas que inicien con el path */action*.
 
 Gracias a esta distribución de archivos en carpetas, es posible diferenciar los recursos manejados por el servidor de forma nativa y los recursos que el usuario quiera añadir y trabajar para su implementación particular usando nuestro servidor de aplicaciones.
 
