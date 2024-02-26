@@ -1,7 +1,7 @@
 package com.example.taller4.myspark;
 
-import com.example.taller4.myspark.anotations.Component;
-import com.example.taller4.myspark.anotations.GetMapping;
+import com.example.taller4.myspark.annotations.Component;
+import com.example.taller4.myspark.annotations.GetMapping;
 
 @Component
 public class HelloController {
@@ -17,7 +17,8 @@ public class HelloController {
     }
 
     @GetMapping("/square")
-    public static Double square(String val) {
-        return Double.valueOf(val) * Double.valueOf(val);
+    public static String square(String val) {
+        int number = Integer.parseInt(val);
+        return String.valueOf(number * number);
     }
 }
