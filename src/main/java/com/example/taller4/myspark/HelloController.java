@@ -21,4 +21,10 @@ public class HelloController {
         int number = Integer.parseInt(val);
         return String.valueOf(number * number);
     }
+
+    @GetMapping("/floor")
+    public static String floor(String number) {
+        double num = Math.floor(Double.parseDouble(number));
+        return String.valueOf(num);
+    }
 }
