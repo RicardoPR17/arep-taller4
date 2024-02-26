@@ -81,7 +81,6 @@ public class HttpServer {
                 if (firstLine) {
                     if (inputLine.contains("GET")) {
                         method = "GET";
-                        System.out.println(inputLine);
                         uriStr = inputLine.split(" ")[1];
                         break;
                     } else if (inputLine.contains("POST")) {
@@ -101,7 +100,7 @@ public class HttpServer {
             }
 
             URI file = new URI(uriStr);
-            System.out.println("Find URI: " + file.getPath());
+            System.out.println("Find URI: " + file);
             String path = file.getPath();
             String query = file.getQuery();
             if (query != null) {
@@ -110,57 +109,58 @@ public class HttpServer {
                 query = "";
             }
 
-            if (file.getPath() != null) {
-
-                if (search) {
-                    getMovieData(out, file);
-                } else {
-                    // Routes checking
-                    try {
-                        if (path.startsWith("/action")) {
-                            String webURI = path.replace("/action", "");
-                            if (method.equals("GET")) {
-                                if (services.containsKey(webURI)) {
-                                    outputLine = services.get(webURI).handle(query);
-                                } else if (webURI.contains(".")) {
-                                    outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
-                                } else {
-                                    outputLine = httpError();
-                                }
-                            } else if (method.equals("POST")) {
-                                if (services.containsKey(webURI)) {
-                                    outputLine = services.get(webURI).handle(query);
-                                } else if (webURI.contains(".")) {
-                                    outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
-                                } else {
-                                    outputLine = httpError();
-                                }
-                            }
-                        } else if (path.startsWith("/component")) {
-                            String webURI = path.replace("/component", "");
-                            if (components.containsKey(webURI)) {
-                                outputLine = "HTTP/1.1 200 OK\r\n"
-                                        + "Content-Type:text/html\r\n"
-                                        + "\r\n";
-                                Method methodReq = components.get(webURI);
-                                if (methodReq.getParameterCount() == 1) {
-                                    outputLine += methodReq.invoke(null, (Object) query);
-                                } else {
-                                    outputLine += methodReq.invoke(null);
-                                }
+            if (search) {
+                getMovieData(out, file);
+            } else {
+                // Routes checking
+                try {
+                    if (path.startsWith("/action")) {
+                        String webURI = path.replace("/action", "");
+                        if (method.equals("GET")) {
+                            if (services.containsKey(webURI)) {
+                                outputLine = services.get(webURI).handle(query);
+                            } else if (webURI.contains(".")) {
+                                outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
                             } else {
                                 outputLine = httpError();
                             }
-                        } else {
-                            outputLine = htttpClientHtml(file.getPath(), clientSocket.getOutputStream());
+                        } else if (method.equals("POST")) {
+                            if (services.containsKey(webURI)) {
+                                outputLine = services.get(webURI).handle(query);
+                            } else if (webURI.contains(".")) {
+                                outputLine = htttpClientHtml(webURI, clientSocket.getOutputStream(), userDir);
+                            } else {
+                                outputLine = httpError();
+                            }
                         }
-                    } catch (IOException e) {
-                        outputLine = httpError();
+                    } else if (path.startsWith("/component")) {
+                        String webURI = path.replace("/component", "");
+                        if (components.containsKey(webURI)) {
+                            outputLine = "HTTP/1.1 200 OK\r\n"
+                                    + "Content-Type:text/html\r\n"
+                                    + "\r\n";
+                            Method methodReq = components.get(webURI);
+                            if (methodReq.getParameterCount() == 1) {
+                                outputLine += methodReq.invoke(null, (Object) query);
+                            } else {
+                                outputLine += methodReq.invoke(null);
+                            }
+                        } else {
+                            outputLine = httpError();
+                        }
+                    } else {
+                        try {
+                            outputLine = htttpClientHtml(file.getPath(), clientSocket.getOutputStream());
+                        } catch (NullPointerException e) {
+                            continue;
+                        }
                     }
+                } catch (IOException e) {
+                    outputLine = httpError();
                 }
-
-                out.println(outputLine);
             }
+
+            out.println(outputLine);
 
             out.close();
             in.close();
