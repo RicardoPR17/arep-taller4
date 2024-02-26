@@ -27,6 +27,6 @@ public class MyWebServices {
         HttpServer.post("/post_test", p -> headers + "<h1> Test post " + p + "</h1>");
 
         HttpServer.setJSONAPIResponse(true);
-        HttpServer.getInstance().runServer(new String[] { "prueba", args[0] });
+        HttpServer.getInstance().runServer(new String[] { "prueba" });
     }
 }
